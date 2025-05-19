@@ -57,6 +57,11 @@ public class DirectXGPUDetector {
 
 Load `gpu-detect-jni.dll` and use `getSerialisedGPUs` function.
 
+### FFM:
+
+Load `gpu-detect-jni.dll` and use `char* DetectGPUsFFM(char* buf, size_t size)` function.
+
+
 ## How It Works
 
 The utility uses Windows DXGI (DirectX Graphics Infrastructure) to enumerate available graphics adapters and determine
