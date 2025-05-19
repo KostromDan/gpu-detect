@@ -4,18 +4,28 @@ A lightweight utility for detecting and categorizing GPUs on Windows systems as 
 
 ## Overview
 
-This project was created to replace Vulkan-based GPU detection logic used
-in [Crash Assistant](https://github.com/KostromDan/Crash-Assistant) project. The original implementation was increasing
-the mod size by approximately 5 MB and some modpack creators weren't happy about this, so this lightweight alternative
-was developed using DirectX APIs instead.
+This project was created to replace the Vulkan-based GPU detection logic used
+in the [Crash Assistant](https://github.com/KostromDan/Crash-Assistant) project for showing a warning if Minecraft is
+running on an integrated GPU while a dedicated GPU is available. This is a very common problem for Windows notebooks.
+The original implementation was increasing the mod size by ~5 MB, and some modpack creators were not happy
+about this. Therefore, this lightweight alternative was developed using DirectX APIs instead
+(~20 KB in jar zip).
+
+#### Output Example:
+
+```text
+INTEGRATED : AMD Radeon(TM) Graphics
+DEDICATED : NVIDIA GeForce RTX 4090
+```
 
 ## Features
 
 - Detects both integrated and dedicated GPUs
-- Outputs GPU information including device description
+- Outputs GPU information including device description and type
 - Uses DirectX 12 and DXGI APIs for efficient hardware detection
-- Significantly smaller footprint compared to Vulkan-based solutions (~20KB)
+- Significantly smaller footprint compared to Vulkan-based solutions (~20 KB in jar zip)
 - Standalone executable with no external dependencies
+- EXE and DLL (JNI for usage in Java) versions
 
 ## Requirements
 
@@ -28,17 +38,22 @@ Download the latest release from the [Releases](https://github.com/KostromDan/gp
 
 ## Usage
 
-Run the executable from command prompt to see a list of available GPUs with their types: `gpu-detect.exe`
+### EXE:
 
-If you just running exe as file it will close immediately after all printed, so you might want to pipe the output to a
-file or run it from the command prompt to see the results.
+    Run the executable from command prompt to see a list of available GPUs with their types: `gpu-detect.exe`
+    
+    If you just running exe as file it will close immediately after all printed, so you might want to pipe the output to a
+    file or run it from the command prompt to see the results.
 
-### Output Example
+### JNI:
 
-```text
-INTEGRATED : AMD Radeon(TM) Graphics
-DEDICATED : NVIDIA GeForce RTX 4090
-```
+    Usege from Java:
+    ```java
+    public class DirectXGPUDetector {
+        public native static String getSerialisedGPUs();
+    }
+    ```
+    Load `gpu-detect-jni.dll` and use `getSerialisedGPUs` function.
 
 ## How It Works
 
