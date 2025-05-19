@@ -40,20 +40,22 @@ Download the latest release from the [Releases](https://github.com/KostromDan/gp
 
 ### EXE:
 
-    Run the executable from command prompt to see a list of available GPUs with their types: `gpu-detect.exe`
-    
-    If you just running exe as file it will close immediately after all printed, so you might want to pipe the output to a
-    file or run it from the command prompt to see the results.
+Run the executable from command prompt to see a list of available GPUs with their types: `gpu-detect.exe`
+
+If you just running exe as file it will close immediately after all printed, so you might want to pipe the output to a
+file or run it from the command prompt to see the results.
 
 ### JNI:
 
-    Usege from Java:
-    ```java
-    public class DirectXGPUDetector {
-        public native static String getSerialisedGPUs();
-    }
-    ```
-    Load `gpu-detect-jni.dll` and use `getSerialisedGPUs` function.
+Usege from Java:
+
+```java
+public class DirectXGPUDetector {
+    public native static String getSerialisedGPUs();
+}
+```
+
+Load `gpu-detect-jni.dll` and use `getSerialisedGPUs` function.
 
 ## How It Works
 
