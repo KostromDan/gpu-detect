@@ -39,7 +39,8 @@ static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char *adapterName, char *
 }
 
 /**
- * Returns true if `description` already exists in the first `len` bytes of `buffer`.
+ * Returns true if `description` with its type prefix (e.g., "DEDICATED : " or "INTEGRATED : ") 
+ * already exists in the first `len` bytes of `buffer`.
  */
 static bool AlreadyListed(const char *buffer, size_t len, const char *description) {
     if (len == 0) return false;
@@ -48,7 +49,10 @@ static bool AlreadyListed(const char *buffer, size_t len, const char *descriptio
     char saved = *end;
     *const_cast<char *>(end) = '\0';
 
-    bool found = (strstr(buffer, description) != nullptr);
+    // Look for description with the " : " prefix to avoid matching error messages
+    char searchPattern[300] = {0};
+    snprintf(searchPattern, sizeof(searchPattern), " : %s", description);
+    bool found = (strstr(buffer, searchPattern) != nullptr);
 
     *const_cast<char *>(end) = saved;
     return found;
