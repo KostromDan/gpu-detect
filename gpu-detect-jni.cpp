@@ -16,7 +16,7 @@ char* DetectGPUsFFM(char* buffer, size_t bufferSize) {
 }
 
 // -----------------------------------------------------------------------------
-// 2) JNI bridge remains unchanged—calls the internal static DetectGPUs.
+// 2) JNI bridge calls the internal static DetectGPUs.
 // -----------------------------------------------------------------------------
 JNIEXPORT jstring JNICALL
 Java_dev_kostromdan_mods_crash_1assistant_app_utils_gpu_DirectXGPUDetector_getSerialisedGPUs(

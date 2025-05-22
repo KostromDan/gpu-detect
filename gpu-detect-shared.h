@@ -5,6 +5,7 @@
 #include <dxgi1_6.h>
 #include <d3d12.h>
 #include <cstdio>
+#include <cstring>
 #include <wrl/client.h>
 
 // Use Microsoft's WRL::ComPtr for COM smart pointers
@@ -13,7 +14,8 @@ using Microsoft::WRL::ComPtr;
 /**
  * Returns true if the adapter is UMA (i.e. integrated) by querying D3D12_FEATURE_ARCHITECTURE1.
  */
-static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char* adapterName, char* buffer, size_t bufferSize, size_t* writtenSize) {
+static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char *adapterName, char *buffer, size_t bufferSize,
+                         size_t *writtenSize) {
     ComPtr<ID3D12Device> device;
 
     // Try to create a D3D12 device for the adapter
@@ -21,8 +23,8 @@ static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char* adapterName, char* 
     if (FAILED(hr)) {
         // Assume dedicated if we can't create a device
         int written = snprintf(buffer + *writtenSize, bufferSize - *writtenSize,
-                "Warning: Failed to create D3D12 device for adapter '%s' (0x%08lx) - assuming dedicated\n",
-                adapterName, hr);
+                               "Warning: Failed to create D3D12 device for adapter '%s' (0x%08lx) - assuming dedicated\n",
+                               adapterName, hr);
         if (written > 0) *writtenSize += written;
         return false;
     }
@@ -37,15 +39,31 @@ static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char* adapterName, char* 
 }
 
 /**
+ * Returns true if `description` already exists in the first `len` bytes of `buffer`.
+ */
+static bool AlreadyListed(const char *buffer, size_t len, const char *description) {
+    if (len == 0) return false;
+
+    const char *end = buffer + len; // protect against stray NULs beyond len
+    char saved = *end;
+    *const_cast<char *>(end) = '\0';
+
+    bool found = (strstr(buffer, description) != nullptr);
+
+    *const_cast<char *>(end) = saved;
+    return found;
+}
+
+/**
  * Enumerates adapters of a given GPU preference and writes output to buffer.
  * Returns the number of adapters printed.
  */
 static int EnumerateAdapters(IDXGIFactory6 *factory,
-                            DXGI_GPU_PREFERENCE preference,
-                            bool wantUMA,
-                            char* buffer,
-                            size_t bufferSize,
-                            size_t* writtenSize) {
+                             DXGI_GPU_PREFERENCE preference,
+                             bool wantUMA,
+                             char *buffer,
+                             size_t bufferSize,
+                             size_t *writtenSize) {
     const char *label = wantUMA ? "INTEGRATED" : "DEDICATED";
     int printed = 0;
     size_t offset = *writtenSize;
@@ -60,8 +78,8 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
 
         if (FAILED(hr)) {
             int written = snprintf(buffer + offset, bufferSize - offset,
-                    "Warning: EnumAdapterByGpuPreference(%u) failed (0x%08lx)\n",
-                    idx, hr);
+                                   "Warning: EnumAdapterByGpuPreference(%u) failed (0x%08lx)\n",
+                                   idx, hr);
             if (written > 0) offset += written;
             continue;
         }
@@ -78,7 +96,11 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
                             desc.Description, -1,
                             description, sizeof(description),
                             nullptr, nullptr);
-        
+
+        /* duplicate filter */
+        if (AlreadyListed(buffer, offset, description))
+            continue;
+
         bool isUMA = IsUMAAdapter(adapter.Get(), description, buffer, bufferSize, &offset);
         if (isUMA != wantUMA)
             continue;
@@ -99,14 +121,14 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
  * Detects GPU information and writes output to the provided buffer.
  * Returns a pointer to the buffer.
  */
-static char* DetectGPUs(char* buffer, size_t bufferSize) {
+static char *DetectGPUs(char *buffer, size_t bufferSize) {
     size_t offset = 0;
-    
+
     // Initialise COM – D3D12 relies on a multi‑threaded apartment.
     HRESULT hrCo = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     if (FAILED(hrCo)) {
         snprintf(buffer, bufferSize,
-                "Error: COM initialisation failed (0x%08lx)\n", hrCo);
+                 "Error: COM initialisation failed (0x%08lx)\n", hrCo);
         return buffer;
     }
 
@@ -140,8 +162,8 @@ static char* DetectGPUs(char* buffer, size_t bufferSize) {
 
     // Exit with error if no adapters found
     if (integratedCount + dedicatedCount == 0) {
-        snprintf(buffer + offset, bufferSize - offset, 
-                "Error: No supported graphics adapters found\n");
+        snprintf(buffer + offset, bufferSize - offset,
+                 "Error: No supported graphics adapters found\n");
     }
 
     CoUninitialize();
