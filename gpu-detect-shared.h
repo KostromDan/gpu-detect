@@ -70,8 +70,7 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
 
     for (UINT idx = 0;; ++idx) {
         ComPtr<IDXGIAdapter1> adapter;
-        HRESULT hr = factory->EnumAdapterByGpuPreference(idx, preference,
-                                                         IID_PPV_ARGS(&adapter));
+        HRESULT hr = factory->EnumAdapterByGpuPreference(idx, preference,IID_PPV_ARGS(&adapter));
 
         if (hr == DXGI_ERROR_NOT_FOUND)
             break; // finished
