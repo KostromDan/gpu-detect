@@ -4,8 +4,8 @@
 
 int main() {
     // Create a buffer to capture all output
-    char buffer[4096] = {0};
-    
+    char buffer[16384] = {0};
+
     // Get the GPU detection output
     DetectGPUs(buffer, sizeof(buffer));
     

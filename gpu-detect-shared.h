@@ -39,23 +39,25 @@ static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char *adapterName, char *
 }
 
 /**
- * Returns true if `description` with its type prefix (e.g., "DEDICATED : " or "INTEGRATED : ") 
+ * Returns true if `description` with its type prefix (e.g., "DEDICATED : " or "INTEGRATED : ")
  * already exists in the first `len` bytes of `buffer`.
  */
 static bool AlreadyListed(const char *buffer, size_t len, const char *description) {
     if (len == 0) return false;
+    /* build “ : <desc>” pattern */
+    char pattern[512];
+    int patLen = snprintf(pattern, sizeof(pattern), " : %s", description);
+    if (patLen <= 0) return false; /* nothing to look for   */
+    if ((size_t) patLen >= sizeof(pattern))
+        patLen = sizeof(pattern) - 1; /* clipped but safe      */
 
-    const char *end = buffer + len; // protect against stray NULs beyond len
-    char saved = *end;
-    *const_cast<char *>(end) = '\0';
-
-    // Look for description with the " : " prefix to avoid matching error messages
-    char searchPattern[300] = {0};
-    snprintf(searchPattern, sizeof(searchPattern), " : %s", description);
-    bool found = (strstr(buffer, searchPattern) != nullptr);
-
-    *const_cast<char *>(end) = saved;
-    return found;
+    /* naive linear search limited to [0, len) */
+    for (size_t i = 0; i + (size_t) patLen <= len; ++i) {
+        if (buffer[i] == pattern[0] &&
+            memcmp(buffer + i, pattern, (size_t) patLen) == 0)
+            return true;
+    }
+    return false;
 }
 
 /**
@@ -72,28 +74,20 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
     int printed = 0;
     size_t offset = *writtenSize;
 
-    for (UINT idx = 0;; ++idx) {
+    for (UINT idx = 0; ; ++idx) {
+        /* stop early if the buffer is full */
+        if (offset >= bufferSize - 1)
+            break;
+
         ComPtr<IDXGIAdapter1> adapter;
-        HRESULT hr = factory->EnumAdapterByGpuPreference(idx, preference,IID_PPV_ARGS(&adapter));
-
-        if (hr == DXGI_ERROR_NOT_FOUND)
-            break; // finished
-
-        if (FAILED(hr)) {
-            int written = snprintf(buffer + offset, bufferSize - offset,
-                                   "Warning: EnumAdapterByGpuPreference(%u) failed (0x%08lx)\n",
-                                   idx, hr);
-            if (written > 0) offset += written;
-            continue;
-        }
+        HRESULT hr = factory->EnumAdapterByGpuPreference(idx, preference, IID_PPV_ARGS(&adapter));
+        if (hr == DXGI_ERROR_NOT_FOUND)break;
 
         DXGI_ADAPTER_DESC1 desc = {};
-        adapter->GetDesc1(&desc);
+        if (adapter->GetDesc1(&desc) != S_OK) continue;
+        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) continue; /* skip WARP */
 
-        if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
-            continue; // skip WARP
-
-        // Convert UTF‑16 description to UTF‑8 for printf
+        /* UTF-16 → UTF-8 */
         char description[256] = {0};
         WideCharToMultiByte(CP_UTF8, 0,
                             desc.Description, -1,
@@ -104,18 +98,30 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
         if (AlreadyListed(buffer, offset, description))
             continue;
 
+        /* allow helper to append “INTEGRATED / DEDICATED”-specific info */
         bool isUMA = IsUMAAdapter(adapter.Get(), description, buffer, bufferSize, &offset);
         if (isUMA != wantUMA)
             continue;
 
-        int written = snprintf(buffer + offset, bufferSize - offset,
-                               "%s : %s\n", label, description);
-        if (written > 0) {
-            offset += written;
-            ++printed;
+        /* make sure there is still room for the new line */
+        if (offset >= bufferSize - 1)break;
+
+        int written = snprintf(buffer + offset, bufferSize - offset, "%s : %s\n", label, description);
+        if (written <= 0) /* encoding failure ⇒ ignore line */
+            continue;
+
+        if ((size_t) written >= bufferSize - offset) {
+            /* line truncated – terminate string, stop writing further */
+            offset = bufferSize - 1;
+            buffer[offset] = '\0';
+            break;
         }
+
+        offset += (size_t) written;
+        ++printed;
     }
 
+    /* hand back the new end-of-string offset */
     *writtenSize = offset;
     return printed;
 }

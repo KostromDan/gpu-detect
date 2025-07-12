@@ -22,7 +22,7 @@ JNIEXPORT jstring JNICALL
 Java_dev_kostromdan_mods_crash_1assistant_app_utils_gpu_DirectXGPUDetector_getSerialisedGPUs(
     JNIEnv *env, jclass /*cls*/)
 {
-    char buffer[4096] = {0};
+    char buffer[16384] = {0};
     DetectGPUs(buffer, sizeof(buffer));    // static fn in gpu-detect-shared.h
     return env->NewStringUTF(buffer);
 }
