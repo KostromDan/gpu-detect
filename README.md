@@ -51,7 +51,12 @@ Usege from Java:
 
 ```java
 public class DirectXGPUDetector {
-    public native static String getSerialisedGPUs();
+    private native static byte[] getNativeSerialisedGPUs();
+
+    public static String getSerialisedGPUs() {
+        byte[] bytes = getNativeSerialisedGPUs();
+        return new String(bytes, StandardCharsets.UTF_8);
+    }
 }
 ```
 
