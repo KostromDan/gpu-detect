@@ -12,6 +12,13 @@
 using Microsoft::WRL::ComPtr;
 
 /**
+ * Helper function to check if there's enough room in the buffer
+ */
+inline bool OutOfRoom(size_t needed, size_t offset, size_t cap) {
+    return needed > cap - offset - 1;   // -1 for final NUL
+}
+
+/**
  * Returns true if the adapter is UMA (i.e. integrated) by querying D3D12_FEATURE_ARCHITECTURE1.
  */
 static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char *adapterName, char *buffer, size_t bufferSize,
@@ -21,11 +28,14 @@ static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char *adapterName, char *
     // Try to create a D3D12 device for the adapter
     HRESULT hr = D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&device));
     if (FAILED(hr)) {
-        // Assume dedicated if we can't create a device
-        int written = snprintf(buffer + *writtenSize, bufferSize - *writtenSize,
-                               "Warning: Failed to create D3D12 device for adapter '%s' (0x%08lx) - assuming dedicated\n",
-                               adapterName, hr);
-        if (written > 0) *writtenSize += written;
+        // Check if we have enough buffer space before writing
+        if (!OutOfRoom(128 + strlen(adapterName), *writtenSize, bufferSize)) {
+            // Assume dedicated if we can't create a device
+            int written = snprintf(buffer + *writtenSize, bufferSize - *writtenSize,
+                                  "Warning: Failed to create D3D12 device for adapter '%s' (0x%08lx) - assuming dedicated\n",
+                                  adapterName, hr);
+            if (written > 0) *writtenSize += written;
+        }
         return false;
     }
 
@@ -87,16 +97,23 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
         if (adapter->GetDesc1(&desc) != S_OK) continue;
         if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) continue; /* skip WARP */
 
-        /* UTF-16 → UTF-8 */
-        char description[256] = {0};
-        WideCharToMultiByte(CP_UTF8, 0,
-                            desc.Description, -1,
-                            description, sizeof(description),
-                            nullptr, nullptr);
+        /* UTF-16 → UTF-8 - First pass to get required size */
+        int need = WideCharToMultiByte(CP_UTF8, 0, desc.Description, -1,
+                                  nullptr, 0, nullptr, nullptr);
+        if (need <= 0) continue;  // conversion failed
+
+        /* Allocate exact size needed */
+        char* description = static_cast<char*>(_alloca(need));
+        WideCharToMultiByte(CP_UTF8, 0, desc.Description, -1,
+                            description, need, nullptr, nullptr);
 
         /* duplicate filter */
         if (AlreadyListed(buffer, offset, description))
             continue;
+
+        /* check if we have enough buffer space before calling IsUMAAdapter */
+        if (offset >= bufferSize - 1)
+            break;
 
         /* allow helper to append “INTEGRATED / DEDICATED”-specific info */
         bool isUMA = IsUMAAdapter(adapter.Get(), description, buffer, bufferSize, &offset);
