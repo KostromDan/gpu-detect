@@ -15,7 +15,7 @@ using Microsoft::WRL::ComPtr;
  * Helper function to check if there's enough room in the buffer
  */
 inline bool OutOfRoom(size_t needed, size_t offset, size_t cap) {
-    return needed > cap - offset - 1;   // -1 for final NUL
+    return needed > cap - offset - 1; // -1 for final NUL
 }
 
 /**
@@ -32,8 +32,8 @@ static bool IsUMAAdapter(IDXGIAdapter1 *adapter, const char *adapterName, char *
         if (!OutOfRoom(128 + strlen(adapterName), *writtenSize, bufferSize)) {
             // Assume dedicated if we can't create a device
             int written = snprintf(buffer + *writtenSize, bufferSize - *writtenSize,
-                                  "Warning: Failed to create D3D12 device for adapter '%s' (0x%08lx) - assuming dedicated\n",
-                                  adapterName, hr);
+                                   "Warning: Failed to create D3D12 device for adapter '%s' (0x%08lx) - assuming dedicated\n",
+                                   adapterName, hr);
             if (written > 0) *writtenSize += written;
         }
         return false;
@@ -99,11 +99,11 @@ static int EnumerateAdapters(IDXGIFactory6 *factory,
 
         /* UTF-16 → UTF-8 - First pass to get required size */
         int need = WideCharToMultiByte(CP_UTF8, 0, desc.Description, -1,
-                                  nullptr, 0, nullptr, nullptr);
-        if (need <= 0) continue;  // conversion failed
+                                       nullptr, 0, nullptr, nullptr);
+        if (need <= 0) continue; // conversion failed
 
         /* Allocate exact size needed */
-        char* description = static_cast<char*>(_alloca(need));
+        char *description = static_cast<char *>(_alloca(need));
         WideCharToMultiByte(CP_UTF8, 0, desc.Description, -1,
                             description, need, nullptr, nullptr);
 

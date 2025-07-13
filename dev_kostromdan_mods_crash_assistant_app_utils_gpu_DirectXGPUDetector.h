@@ -9,11 +9,12 @@ extern "C" {
 #endif
 /*
  * Class:     dev_kostromdan_mods_crash_assistant_app_utils_gpu_DirectXGPUDetector
- * Method:    getSerialisedGPUs
- * Signature: ()Ljava/lang/String;
+ * Method:    getNativeSerialisedGPUs
+ * Signature: ()[B
  */
-JNIEXPORT jstring JNICALL Java_dev_kostromdan_mods_crash_1assistant_app_utils_gpu_DirectXGPUDetector_getSerialisedGPUs
-  (JNIEnv *, jclass);
+JNIEXPORT jbyteArray JNICALL
+Java_dev_kostromdan_mods_crash_assistant_app_utils_gpu_DirectXGPUDetector_getNativeSerialisedGPUs
+(JNIEnv *, jclass);
 
 #ifdef __cplusplus
 }

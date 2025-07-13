@@ -4,15 +4,16 @@
 
 int main() {
     // Create a buffer to capture all output - using heap instead of stack
-    auto hBuf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 1 << 16); // 64 KiB
-    char* buffer = static_cast<char*>(hBuf);
+    const size_t bufferSize = 1 << 20; // 1MB = 1,048,576 bytes
+    auto hBuf = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, bufferSize);
+    char *buffer = static_cast<char *>(hBuf);
 
     // Get the GPU detection output
-    DetectGPUs(buffer, 1 << 16);
-    
+    DetectGPUs(buffer, bufferSize);
+
     // Print the result
     printf("%s", buffer);
-    
+
     // Free heap-allocated buffer
     HeapFree(GetProcessHeap(), 0, buffer);
 
